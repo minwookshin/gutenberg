@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Breaking Changes
+
+-   Upgrade React to v19.
+
 ### Bug Fixes
 
 -   Avoid intercepting esbuild virtual modules, preserve root custom-property priorities on cleanup, and reject non-finite RGB seed channels while treating missing (`none`) RGB channels as zero. ([#83355](https://github.com/WordPress/gutenberg/pull/83355))
