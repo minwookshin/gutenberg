@@ -318,6 +318,7 @@ describe( 'useOpenImageMediaEditorModal', () => {
 		expect( openMediaEditorModal ).toHaveBeenCalledWith( {
 			id: 1,
 			onUpdate: expect.any( Function ),
+			onUndo: expect.any( Function ),
 			onClose: undefined,
 		} );
 		expect( setAttributes ).toHaveBeenCalledWith( {
@@ -360,6 +361,7 @@ describe( 'useOpenImageMediaEditorModal', () => {
 		expect( openMediaEditorModal ).toHaveBeenCalledWith( {
 			id: 1,
 			onUpdate: expect.any( Function ),
+			onUndo: expect.any( Function ),
 			onClose: undefined,
 		} );
 		expect( setAttributes ).toHaveBeenCalledWith( {
@@ -1002,6 +1004,126 @@ describe( 'useOpenImageMediaEditorModal', () => {
 			alt: 'Attachment alt',
 			caption: 'Attachment caption',
 		} );
+	} );
+} );
+
+describe( 'media editor Undo', () => {
+	it( 'restores the block metadata, selected image size, and link after restoring an original image', async () => {
+		const { setAttributes, openMediaEditorModal } = await runModalUpdate( {
+			attributes: {
+				id: 2,
+				url: 'crop-medium.jpg',
+				alt: 'Close-up',
+				caption: 'Cropped caption',
+				sizeSlug: 'medium',
+				linkDestination: 'media',
+				href: 'crop.jpg',
+			},
+			registryOptions: {
+				getEditedEntityRecord: () => ( {
+					id: 2,
+					alt_text: 'Close-up',
+					caption: { raw: 'Cropped caption' },
+				} ),
+				resolveGetEntityRecord: () => ( {
+					id: 1,
+					source_url: 'original.jpg',
+					alt_text: 'Full scene',
+					caption: { raw: 'Original caption' },
+					media_details: {
+						sizes: { full: { source_url: 'original.jpg' } },
+					},
+				} ),
+			},
+			updatePayload: { id: 1, url: 'original.jpg' },
+		} );
+		expect( setAttributes ).toHaveBeenLastCalledWith( {
+			id: 1,
+			url: 'original.jpg',
+			alt: 'Full scene',
+			caption: 'Original caption',
+			sizeSlug: 'full',
+			href: 'original.jpg',
+		} );
+
+		act( () => openMediaEditorModal.mock.calls[ 0 ][ 0 ].onUndo() );
+
+		expect( setAttributes ).toHaveBeenLastCalledWith( {
+			id: 2,
+			url: 'crop-medium.jpg',
+			alt: 'Close-up',
+			caption: 'Cropped caption',
+			sizeSlug: 'medium',
+			href: 'crop.jpg',
+		} );
+	} );
+
+	it( 'leaves custom metadata and unrelated block edits out of Undo', async () => {
+		const { setAttributes, openMediaEditorModal } = await runModalUpdate( {
+			attributes: {
+				id: 1,
+				url: 'original.jpg',
+				alt: 'Custom alt',
+				caption: 'Custom caption',
+				width: '300px',
+				linkDestination: 'custom',
+				href: 'https://example.com/custom',
+			},
+			registryOptions: croppedAttachmentRecords(),
+			updatePayload: CROP_UPDATE,
+		} );
+
+		act( () => openMediaEditorModal.mock.calls[ 0 ][ 0 ].onUndo() );
+
+		expect( setAttributes ).toHaveBeenLastCalledWith( {
+			id: 1,
+			url: 'original.jpg',
+		} );
+	} );
+
+	it( 'keeps the previous image when Undo runs before metadata finishes loading', async () => {
+		const pendingAttachment = createDeferred();
+		useRegistry.mockReturnValue(
+			createRegistry( {
+				getEditedEntityRecord: () => ORIGINAL_ATTACHMENT,
+				resolveGetEntityRecord: () => pendingAttachment.promise,
+			} )
+		);
+		const setAttributes = vi.fn();
+		const onUrlChange = vi.fn();
+		const openMediaEditorModal = vi.fn();
+		mockMediaEditorModalSetting( openMediaEditorModal );
+		const { result } = renderHook( () =>
+			useOpenImageMediaEditorModal( {
+				attributes: {
+					id: 1,
+					url: 'original-medium.jpg',
+					alt: '',
+					caption: '',
+				},
+				setAttributes,
+				onUrlChange,
+			} )
+		);
+		await act( () => result.current() );
+		const { onUpdate, onUndo } = openMediaEditorModal.mock.calls[ 0 ][ 0 ];
+		let updatePromise;
+		act( () => {
+			updatePromise = onUpdate( CROP_UPDATE );
+		} );
+
+		act( () => onUndo() );
+		await act( async () => {
+			pendingAttachment.resolve( CROPPED_ATTACHMENT );
+			await updatePromise;
+		} );
+
+		expect( setAttributes ).toHaveBeenCalledTimes( 1 );
+		expect( setAttributes ).toHaveBeenCalledWith( {
+			id: 1,
+			url: 'original-medium.jpg',
+		} );
+		expect( onUrlChange ).toHaveBeenLastCalledWith( 'original-medium.jpg' );
 	} );
 } );
 

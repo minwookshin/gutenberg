@@ -551,36 +551,13 @@ function MediaEditorContent( {
 	// its own controls, so it moves that cluster elsewhere. The same width
 	// undocks the panel, so this is `isWide` rather than a second query.
 	const layout: 'wide' | 'narrow' = isWide ? 'wide' : 'narrow';
-	const { media, hasEdits } = useSelect(
-		( select ) => {
-			const {
-				getEditedEntityRecord,
-				getEntityRecord,
-				hasEditsForEntityRecord,
-			} = select( coreStore );
-			// Trigger an _embed fetch so `_embedded.author` and
-			// `_embedded['wp:attached-to']` land on the record for the Details
-			// fields to read. `getEditedEntityRecord` doesn't formally accept a
-			// query, so we can't embed via that selector directly.
-			getEntityRecord(
+	const sourceMedia = useSelect(
+		( select ) =>
+			select( coreStore ).getEntityRecord(
 				'postType',
 				'attachment',
-				id,
-				ATTACHMENT_EMBED_QUERY
-			);
-			return {
-				media: getEditedEntityRecord(
-					'postType',
-					'attachment',
-					id
-				) as Media,
-				hasEdits: hasEditsForEntityRecord(
-					'postType',
-					'attachment',
-					id
-				),
-			};
-		},
+				id
+			) as Media,
 		[ id ]
 	);
 
@@ -627,24 +604,12 @@ function MediaEditorContent( {
 		setIsOriginalRestored( false );
 	}, [ id ] );
 
-	// Bust the cached `_embed` resolution each time the editor mounts (or the
-	// id changes) so embedded data such as the attached post's title or the
-	// author's name reflects any edits made elsewhere since the last open.
-	useEffect( () => {
-		invalidateResolution( 'getEntityRecord', [
-			'postType',
-			'attachment',
-			id,
-			ATTACHMENT_EMBED_QUERY,
-		] );
-	}, [ id, invalidateResolution ] );
-
 	// Restore-original: the lineage root the edited attachment descends from,
 	// exposed by the server as the root-level `original_attachment` id on the
 	// attachment (edit context, embeddable via the `wp:original-attachment`
 	// link). Fetch the original's record for the URL and natural dimensions
 	// the cropper needs to seed itself.
-	const originalId: number | undefined = media?.original_attachment;
+	const originalId: number | undefined = sourceMedia?.original_attachment;
 	const originalRecord = useSelect(
 		( select ) =>
 			originalId
@@ -685,6 +650,47 @@ function MediaEditorContent( {
 					media: originalSource.media,
 				}
 			: undefined;
+	// Details and pending edits follow the attachment shown on the canvas.
+	// Keep `sourceMedia` separate for the snackbar's previous attachment.
+	const activeId = restoredSource?.id ?? id;
+	const { media, hasEdits } = useSelect(
+		( select ) => {
+			const {
+				getEditedEntityRecord,
+				getEntityRecord,
+				hasEditsForEntityRecord,
+			} = select( coreStore );
+			// Fetch embedded author and attached-post data for Details.
+			getEntityRecord(
+				'postType',
+				'attachment',
+				activeId,
+				ATTACHMENT_EMBED_QUERY
+			);
+			return {
+				media: getEditedEntityRecord(
+					'postType',
+					'attachment',
+					activeId
+				) as Media,
+				hasEdits: hasEditsForEntityRecord(
+					'postType',
+					'attachment',
+					activeId
+				),
+			};
+		},
+		[ activeId ]
+	);
+	// Refresh embedded data on opening or switching to the original.
+	useEffect( () => {
+		invalidateResolution( 'getEntityRecord', [
+			'postType',
+			'attachment',
+			activeId,
+			ATTACHMENT_EMBED_QUERY,
+		] );
+	}, [ activeId, invalidateResolution ] );
 	const canvasSrcOverride =
 		isOriginalRestored && originalSource
 			? {
@@ -741,7 +747,7 @@ function MediaEditorContent( {
 		cropper,
 		id,
 		isImage,
-		media,
+		media: sourceMedia,
 		onSaved,
 		restoredSource,
 	} );
@@ -755,12 +761,12 @@ function MediaEditorContent( {
 		if ( isSaving ) {
 			return;
 		}
-		editEntityRecord( 'postType', 'attachment', id, updates );
+		editEntityRecord( 'postType', 'attachment', activeId, updates );
 	};
 
 	const discardAndClose = () => {
 		removeAllNotices( 'snackbar', MEDIA_EDITOR_NOTICES_CONTEXT );
-		clearEntityRecordEdits( 'postType', 'attachment', id );
+		clearEntityRecordEdits( 'postType', 'attachment', activeId );
 		setIsOriginalRestored( false );
 		onClose?.();
 	};
@@ -877,17 +883,15 @@ function MediaEditorContent( {
 			onChange={ handleChange }
 			settings={ {
 				// Disable the fields while saving, so the guard in
-				// `handleChange` is not silently swallowing typing, and
-				// once the original is restored, since they edit the
-				// attachment being replaced. `readOnly` would swap the
+				// `handleChange` is not silently swallowing typing.
+				// `readOnly` would swap the
 				// field's layout; disabled keeps it in place and greys it out.
-				fields:
-					isSaving || isOriginalRestored
-						? fields.map( ( field ) => ( {
-								...field,
-								isDisabled: true,
-							} ) )
-						: fields,
+				fields: isSaving
+					? fields.map( ( field ) => ( {
+							...field,
+							isDisabled: true,
+						} ) )
+					: fields,
 			} }
 		>
 			<div className="media-editor">

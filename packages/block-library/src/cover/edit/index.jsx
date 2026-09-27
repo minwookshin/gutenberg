@@ -543,10 +543,17 @@ function CoverEdit( {
 			return;
 		}
 
+		const undoAttributes = {};
+		let isUndone = false;
 		openMediaEditorModal( {
 			id,
 			onClose: () => {
 				editMediaButtonRef.current?.focus();
+			},
+			onUndo: () => {
+				isUndone = true;
+				setIsSwappingMedia( false );
+				setAttributes( undoAttributes );
 			},
 			onUpdate: async ( { id: newId, url: newUrl } ) => {
 				if ( typeof newId !== 'number' ) {
@@ -565,10 +572,17 @@ function CoverEdit( {
 						? { sizeSlug: DEFAULT_MEDIA_SIZE_SLUG }
 						: {} ),
 				};
+				for ( const key of Object.keys( nextAttributes ) ) {
+					undoAttributes[ key ] = propsRef.current.attributes[ key ];
+				}
 
 				if ( newUrl ) {
 					const averageBackgroundColor =
 						await getMediaColor( newUrl );
+					// Snackbar Undo can run while the image color is loading.
+					if ( isUndone ) {
+						return;
+					}
 
 					// Read latest values after await to avoid stale closures.
 					const {
@@ -578,12 +592,18 @@ function CoverEdit( {
 
 					let newOverlayColor = currentOverlay.color;
 					if ( ! currentAttrs.isUserOverlayColor ) {
+						undoAttributes.overlayColor = currentAttrs.overlayColor;
+						undoAttributes.customOverlayColor =
+							currentAttrs.customOverlayColor;
 						newOverlayColor = averageBackgroundColor;
 						setOverlayColor( newOverlayColor );
 						// Fold next attribute change into the same undo level as the setOverlayColor above.
 						__unstableMarkNextChangeAsNotPersistent();
 					}
 
+					undoAttributes.isDark = currentAttrs.isDark;
+					undoAttributes.isUserOverlayColor =
+						currentAttrs.isUserOverlayColor;
 					nextAttributes.isDark = compositeIsDark(
 						currentAttrs.dimRatio,
 						newOverlayColor,

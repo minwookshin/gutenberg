@@ -45,7 +45,8 @@ interface UseSaveMediaEditorArgs {
 	/**
 	 * When the user has restored the lineage root, the save targets that
 	 * original attachment instead of the currently-edited one:
-	 * - with no fresh crop, the block is repointed at the original (no `/edit`);
+	 * - with no fresh crop, the block is repointed at the original and any
+	 *   changed details are saved there (no `/edit`);
 	 * - with a fresh crop, `/edit` runs against the original's id and url.
 	 */
 	restoredSource?: {
@@ -118,6 +119,7 @@ export function useSaveMediaEditor( {
 			// current attachment is both source and target as before.
 			const targetId = restoredSource?.id ?? id;
 			const targetUrl = restoredSource?.url ?? media?.source_url;
+			const targetMedia = restoredSource?.media ?? media;
 
 			// Both a fresh crop and a bare restore swap the block's image, so
 			// both offer an Undo back to the current attachment.
@@ -135,9 +137,12 @@ export function useSaveMediaEditor( {
 					.getEntityRecordNonTransientEdits(
 						'postType',
 						'attachment',
-						id
+						targetId
 					) as PendingMetadataEdits;
-				const metadataEdits = getMetadataEdits( pendingEdits, media );
+				const metadataEdits = getMetadataEdits(
+					pendingEdits,
+					targetMedia
+				);
 
 				saved = ( await apiFetch( {
 					path: `/wp/v2/media/${ targetId }/edit`,
@@ -158,25 +163,32 @@ export function useSaveMediaEditor( {
 						true
 					);
 				}
-			} else if ( restoredSource ) {
-				// Restore with no fresh crop: repoint the block at the original
-				// attachment, which already exists — no `/edit` request. Drop
-				// staged metadata edits, which were made against the cropped
-				// version the user is discarding.
-				clearEntityRecordEdits( 'postType', 'attachment', id );
+			} else if (
+				restoredSource &&
+				! registry
+					.select( coreStore )
+					.hasEditsForEntityRecord(
+						'postType',
+						'attachment',
+						targetId
+					)
+			) {
+				// A bare restore only repoints the block. The original already
+				// exists and has no changes to persist.
 				saved = restoredSource.media;
 			} else {
 				saved = ( await saveEditedEntityRecord(
 					'postType',
 					'attachment',
-					id
+					targetId,
+					{ throwOnError: true }
 				) ) as Media | undefined;
 			}
 
-			const next = ( saved ?? media ) as Media | null;
+			const next = ( saved ?? targetMedia ) as Media | null;
 
-			if ( next && next.id !== id ) {
-				clearEntityRecordEdits( 'postType', 'attachment', id );
+			if ( next && next.id !== targetId ) {
+				clearEntityRecordEdits( 'postType', 'attachment', targetId );
 			}
 
 			if ( next && next.id ) {
