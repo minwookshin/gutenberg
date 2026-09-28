@@ -19,17 +19,6 @@ export interface MediaEditorCanvasProps {
 	 * so a drag cannot change the crop after the request was built.
 	 */
 	disabled?: boolean;
-	/**
-	 * When set, load this image into the cropper instead of the media's own
-	 * `source_url` — used by "Restore original image" to preview the lineage
-	 * root before saving. Swapping the source resets the cropper baseline, so
-	 * the restore counts as clean until the user re-crops.
-	 */
-	srcOverride?: {
-		url: string;
-		width: number;
-		height: number;
-	};
 }
 
 /**
@@ -45,14 +34,12 @@ export interface MediaEditorCanvasProps {
  * @param props.onGestureStart
  * @param props.onGestureEnd
  * @param props.disabled
- * @param props.srcOverride
  */
 export default function MediaEditorCanvas( {
 	isPlacementActive = false,
 	onGestureStart,
 	onGestureEnd,
 	disabled = false,
-	srcOverride,
 }: MediaEditorCanvasProps ) {
 	const { media } = useMediaEditorContext();
 	const controller = useMediaEditor();
@@ -88,16 +75,9 @@ export default function MediaEditorCanvas( {
 
 	const mediaType = getMediaTypeFromMimeType( media?.mime_type );
 
-	// When a restore is active, the cropper shows the lineage root instead of
-	// the media's own file. `loadUrl`/`loadWidth`/`loadHeight` are whichever
-	// source is currently in play.
-	const loadUrl = srcOverride?.url ?? media?.source_url;
-	const loadWidth = srcOverride
-		? srcOverride.width
-		: Number( media?.media_details?.width );
-	const loadHeight = srcOverride
-		? srcOverride.height
-		: Number( media?.media_details?.height );
+	const loadUrl = media?.source_url;
+	const loadWidth = Number( media?.media_details?.width );
+	const loadHeight = Number( media?.media_details?.height );
 
 	useEffect( () => {
 		if (

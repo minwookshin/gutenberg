@@ -63,7 +63,10 @@ async function setup() {
 				: cropped;
 			if ( options?.method === 'POST' ) {
 				const data = JSON.parse( String( options.body ) );
-				writes( url.pathname, data );
+				const response = writes( url.pathname, data );
+				if ( response ) {
+					return response;
+				}
 				return Response.json( {
 					...record,
 					...data,
@@ -136,6 +139,64 @@ afterEach( async () => {
 } );
 
 describe( 'Restore original', () => {
+	it.each( [
+		{ restore: false, attachment: 'the current attachment', id: 11 },
+		{ restore: true, attachment: 'the restored original', id: 10 },
+	] )(
+		'keeps details editable and allows retry after a failed save to $attachment',
+		async ( { restore, id } ) => {
+			const { writes, onSaved } = await setup();
+			if ( restore ) {
+				await restoreOriginal();
+			}
+			const alt = screen.getByRole( 'textbox', {
+				name: 'Alternative text',
+			} );
+			await userEvent.fill( alt, 'My unsaved details' );
+			writes.mockReturnValueOnce(
+				Response.json(
+					{
+						code: 'save_failed',
+						message: 'Details could not be saved.',
+						data: { status: 500 },
+					},
+					{ status: 500 }
+				)
+			);
+
+			await userEvent.click(
+				screen.getByRole( 'button', { name: 'Save' } )
+			);
+
+			const notice = page.getByRole( 'button', {
+				name: 'Dismiss this notice',
+			} );
+			await expect.element( notice ).toBeVisible();
+			await expect
+				.element( notice )
+				.toHaveTextContent(
+					'Could not save image. Details could not be saved.'
+				);
+			expect( onSaved ).not.toHaveBeenCalled();
+			expect( alt ).toBeEnabled();
+			expect( alt ).toHaveValue( 'My unsaved details' );
+
+			await userEvent.click(
+				screen.getByRole( 'button', { name: 'Save' } )
+			);
+			await waitFor( () =>
+				expect( onSaved ).toHaveBeenCalledExactlyOnceWith(
+					expect.objectContaining( { id } )
+				)
+			);
+			expect( writes ).toHaveBeenCalledTimes( 2 );
+			expect( writes ).toHaveBeenLastCalledWith(
+				`/wp/v2/media/${ id }`,
+				expect.objectContaining( { alt_text: 'My unsaved details' } )
+			);
+		}
+	);
+
 	it( 'loads editable original details and discards the cropped attachment edits', async () => {
 		const { registry } = await setup();
 		expect( screen.getByRole( 'textbox', { name: 'Title' } ) ).toHaveValue(
@@ -176,52 +237,50 @@ describe( 'Restore original', () => {
 		} );
 	} );
 
-	it.each( [ false, true ] )(
-		'saves restored details to the original (new crop: %s)',
-		async ( withCrop ) => {
-			const { registry, writes, onSaved } = await setup();
-			await restoreOriginal();
-			await userEvent.fill(
-				screen.getByRole( 'textbox', { name: 'Alternative text' } ),
-				'Updated original text'
-			);
-			if ( withCrop ) {
-				await userEvent.click(
-					screen.getByRole( 'tab', { name: 'Crop' } )
-				);
-				await userEvent.click(
-					screen.getByRole( 'button', {
-						name: 'Rotate 90° clockwise',
-					} )
-				);
-			}
-
+	it.each( [
+		{ withTransform: false, target: 'the original attachment' },
+		{ withTransform: true, target: 'a new attachment after rotating' },
+	] )( 'saves restored details to $target', async ( { withTransform } ) => {
+		const { registry, writes, onSaved } = await setup();
+		await restoreOriginal();
+		await userEvent.fill(
+			screen.getByRole( 'textbox', { name: 'Alternative text' } ),
+			'Updated original text'
+		);
+		if ( withTransform ) {
 			await userEvent.click(
-				screen.getByRole( 'button', { name: 'Save' } )
+				screen.getByRole( 'tab', { name: 'Crop' } )
 			);
-
-			await waitFor( () => expect( onSaved ).toHaveBeenCalledTimes( 1 ) );
-			expect( writes ).toHaveBeenCalledExactlyOnceWith(
-				withCrop ? '/wp/v2/media/10/edit' : '/wp/v2/media/10',
-				expect.objectContaining( { alt_text: 'Updated original text' } )
-			);
-			expect( onSaved ).toHaveBeenCalledWith(
-				expect.objectContaining( {
-					id: withCrop ? 12 : 10,
-					previous: { id: 11, url: cropped.source_url },
+			await userEvent.click(
+				screen.getByRole( 'button', {
+					name: 'Rotate 90° clockwise',
 				} )
 			);
-			expect(
-				registry
-					.select( coreStore )
-					.hasEditsForEntityRecord( 'postType', 'attachment', 10 )
-			).toBe( false );
-			if ( withCrop ) {
-				expect( writes.mock.calls[ 0 ][ 1 ] ).toMatchObject( {
-					src: original.source_url,
-					post: original.post,
-				} );
-			}
 		}
-	);
+
+		await userEvent.click( screen.getByRole( 'button', { name: 'Save' } ) );
+
+		await waitFor( () => expect( onSaved ).toHaveBeenCalledTimes( 1 ) );
+		expect( writes ).toHaveBeenCalledExactlyOnceWith(
+			withTransform ? '/wp/v2/media/10/edit' : '/wp/v2/media/10',
+			expect.objectContaining( { alt_text: 'Updated original text' } )
+		);
+		expect( onSaved ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				id: withTransform ? 12 : 10,
+				previous: { id: 11, url: cropped.source_url },
+			} )
+		);
+		expect(
+			registry
+				.select( coreStore )
+				.hasEditsForEntityRecord( 'postType', 'attachment', 10 )
+		).toBe( false );
+		if ( withTransform ) {
+			expect( writes.mock.calls[ 0 ][ 1 ] ).toMatchObject( {
+				src: original.source_url,
+				post: original.post,
+			} );
+		}
+	} );
 } );

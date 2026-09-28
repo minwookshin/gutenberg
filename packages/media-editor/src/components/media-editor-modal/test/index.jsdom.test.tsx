@@ -151,7 +151,7 @@ describe( 'MediaEditorModal', () => {
 		} );
 	} );
 
-	it( "uses the caller's Undo callback after restoring an original attachment", () => {
+	it( "uses the caller's Undo callback after saving an attachment change", () => {
 		mockOnUndo = vi.fn();
 		render( <MediaEditorModal /> );
 

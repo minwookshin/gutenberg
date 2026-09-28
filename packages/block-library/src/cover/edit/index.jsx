@@ -544,6 +544,8 @@ function CoverEdit( {
 		}
 
 		const undoAttributes = {};
+		let originalBackgroundColor;
+		let originalOverlayColor;
 		let isUndone = false;
 		openMediaEditorModal( {
 			id,
@@ -553,7 +555,40 @@ function CoverEdit( {
 			onUndo: () => {
 				isUndone = true;
 				setIsSwappingMedia( false );
-				setAttributes( undoAttributes );
+				const {
+					attributes: currentAttrs,
+					overlayColor: currentOverlay,
+				} = propsRef.current;
+				const {
+					overlayColor: previousOverlay,
+					customOverlayColor,
+					isUserOverlayColor: previousIsUserOverlayColor,
+					...imageAttributes
+				} = undoAttributes;
+				const restoreOverlay =
+					! currentAttrs.isUserOverlayColor &&
+					Object.hasOwn( undoAttributes, 'overlayColor' );
+				setAttributes( {
+					...imageAttributes,
+					...( restoreOverlay
+						? {
+								overlayColor: previousOverlay,
+								customOverlayColor,
+								isUserOverlayColor: previousIsUserOverlayColor,
+							}
+						: {} ),
+					...( originalBackgroundColor !== undefined
+						? {
+								isDark: compositeIsDark(
+									currentAttrs.dimRatio,
+									restoreOverlay
+										? originalOverlayColor
+										: currentOverlay.color,
+									originalBackgroundColor
+								),
+							}
+						: {} ),
+				} );
 			},
 			onUpdate: async ( { id: newId, url: newUrl } ) => {
 				if ( typeof newId !== 'number' ) {
@@ -577,12 +612,16 @@ function CoverEdit( {
 				}
 
 				if ( newUrl ) {
-					const averageBackgroundColor =
-						await getMediaColor( newUrl );
+					const [ averageBackgroundColor, previousBackgroundColor ] =
+						await Promise.all( [
+							getMediaColor( newUrl ),
+							getMediaColor( undoAttributes.url ),
+						] );
 					// Snackbar Undo can run while the image color is loading.
 					if ( isUndone ) {
 						return;
 					}
+					originalBackgroundColor = previousBackgroundColor;
 
 					// Read latest values after await to avoid stale closures.
 					const {
@@ -592,6 +631,9 @@ function CoverEdit( {
 
 					let newOverlayColor = currentOverlay.color;
 					if ( ! currentAttrs.isUserOverlayColor ) {
+						originalOverlayColor = currentOverlay.color;
+						undoAttributes.isUserOverlayColor =
+							currentAttrs.isUserOverlayColor;
 						undoAttributes.overlayColor = currentAttrs.overlayColor;
 						undoAttributes.customOverlayColor =
 							currentAttrs.customOverlayColor;
@@ -601,9 +643,6 @@ function CoverEdit( {
 						__unstableMarkNextChangeAsNotPersistent();
 					}
 
-					undoAttributes.isDark = currentAttrs.isDark;
-					undoAttributes.isUserOverlayColor =
-						currentAttrs.isUserOverlayColor;
 					nextAttributes.isDark = compositeIsDark(
 						currentAttrs.dimRatio,
 						newOverlayColor,

@@ -336,12 +336,18 @@ describe( 'Cover block', () => {
 			const { onUpdate, onUndo, getAttributes, editAttributes } =
 				await openMediaEditor( {
 					overlayColor: undefined,
-					customOverlayColor: '#123456',
+					customOverlayColor: '#000000',
+					dimRatio: 20,
+					isDark: false,
 					isUserOverlayColor: true,
 				} );
 			await act( () => onUpdate( updatedImage ) );
 			await act( () =>
-				editAttributes( { customOverlayColor: '#654321' } )
+				editAttributes( {
+					customOverlayColor: '#654321',
+					dimRatio: 90,
+					isDark: true,
+				} )
 			);
 
 			act( () => onUndo() );
@@ -351,7 +357,37 @@ describe( 'Cover block', () => {
 				url: originalUrl,
 				sizeSlug: 'medium',
 				customOverlayColor: '#654321',
+				dimRatio: 90,
+				isDark: true,
 				isUserOverlayColor: true,
+			} );
+		} );
+
+		test( 'preserves an overlay chosen after saving when undoing the media update', async () => {
+			const { onUpdate, onUndo, getAttributes, editAttributes } =
+				await openMediaEditor();
+			await act( () => onUpdate( updatedImage ) );
+			await act( () =>
+				editAttributes( {
+					overlayColor: undefined,
+					customOverlayColor: '#000000',
+					isUserOverlayColor: true,
+					dimRatio: 90,
+					isDark: true,
+				} )
+			);
+
+			act( () => onUndo() );
+
+			expect( getAttributes() ).toMatchObject( {
+				id: 10,
+				url: originalUrl,
+				sizeSlug: 'medium',
+				overlayColor: undefined,
+				customOverlayColor: '#000000',
+				isUserOverlayColor: true,
+				dimRatio: 90,
+				isDark: true,
 			} );
 		} );
 

@@ -691,14 +691,6 @@ function MediaEditorContent( {
 			ATTACHMENT_EMBED_QUERY,
 		] );
 	}, [ activeId, invalidateResolution ] );
-	const canvasSrcOverride =
-		isOriginalRestored && originalSource
-			? {
-					url: originalSource.url,
-					width: originalSource.width,
-					height: originalSource.height,
-				}
-			: undefined;
 	const handleRestoreOriginal = useCallback( () => {
 		// Restoring discards every pending edit, as the menu item says, so
 		// nothing staged against the attachment being replaced reaches a save.
@@ -884,8 +876,8 @@ function MediaEditorContent( {
 			settings={ {
 				// Disable the fields while saving, so the guard in
 				// `handleChange` is not silently swallowing typing.
-				// `readOnly` would swap the
-				// field's layout; disabled keeps it in place and greys it out.
+				// `readOnly` would swap the field's layout mid-save;
+				// disabled keeps it in place and greys it out.
 				fields: isSaving
 					? fields.map( ( field ) => ( {
 							...field,
@@ -922,7 +914,6 @@ function MediaEditorContent( {
 										}
 										onGestureEnd={ handleCanvasGestureEnd }
 										disabled={ isSaving }
-										srcOverride={ canvasSrcOverride }
 									/>
 								) : (
 									<MediaPreview />
