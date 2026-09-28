@@ -29,7 +29,7 @@ const cropped: Media = {
 	...original,
 	id: 11,
 	source_url: `${ original.source_url }#cropped`,
-	original_attachment: 10,
+	edit_root: 10,
 	alt_text: 'Cropped alternative text',
 	title: { raw: 'Cropped title', rendered: 'Cropped title' },
 	post: 6,

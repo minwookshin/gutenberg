@@ -604,12 +604,12 @@ function MediaEditorContent( {
 		setIsOriginalRestored( false );
 	}, [ id ] );
 
-	// Restore-original: the lineage root the edited attachment descends from,
-	// exposed by the server as the root-level `original_attachment` id on the
-	// attachment (edit context, embeddable via the `wp:original-attachment`
-	// link). Fetch the original's record for the URL and natural dimensions
-	// the cropper needs to seed itself.
-	const originalId: number | undefined = sourceMedia?.original_attachment;
+	// Restore-original: the edit root the edited attachment descends from,
+	// exposed by the server as the root-level `edit_root` id on the
+	// attachment (edit context, embeddable via the `wp:edit-root` link).
+	// Fetch the original's record for the URL and natural dimensions the
+	// cropper needs to seed itself.
+	const originalId: number | undefined = sourceMedia?.edit_root;
 	const originalRecord = useSelect(
 		( select ) =>
 			originalId
