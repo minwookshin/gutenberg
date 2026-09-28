@@ -63,10 +63,7 @@ async function setup() {
 				: cropped;
 			if ( options?.method === 'POST' ) {
 				const data = JSON.parse( String( options.body ) );
-				const response = writes( url.pathname, data );
-				if ( response ) {
-					return response;
-				}
+				writes( url.pathname, data );
 				return Response.json( {
 					...record,
 					...data,
@@ -139,64 +136,6 @@ afterEach( async () => {
 } );
 
 describe( 'Restore original', () => {
-	it.each( [
-		{ restore: false, attachment: 'the current attachment', id: 11 },
-		{ restore: true, attachment: 'the restored original', id: 10 },
-	] )(
-		'keeps details editable and allows retry after a failed save to $attachment',
-		async ( { restore, id } ) => {
-			const { writes, onSaved } = await setup();
-			if ( restore ) {
-				await restoreOriginal();
-			}
-			const alt = screen.getByRole( 'textbox', {
-				name: 'Alternative text',
-			} );
-			await userEvent.fill( alt, 'My unsaved details' );
-			writes.mockReturnValueOnce(
-				Response.json(
-					{
-						code: 'save_failed',
-						message: 'Details could not be saved.',
-						data: { status: 500 },
-					},
-					{ status: 500 }
-				)
-			);
-
-			await userEvent.click(
-				screen.getByRole( 'button', { name: 'Save' } )
-			);
-
-			const notice = page.getByRole( 'button', {
-				name: 'Dismiss this notice',
-			} );
-			await expect.element( notice ).toBeVisible();
-			await expect
-				.element( notice )
-				.toHaveTextContent(
-					'Could not save image. Details could not be saved.'
-				);
-			expect( onSaved ).not.toHaveBeenCalled();
-			expect( alt ).toBeEnabled();
-			expect( alt ).toHaveValue( 'My unsaved details' );
-
-			await userEvent.click(
-				screen.getByRole( 'button', { name: 'Save' } )
-			);
-			await waitFor( () =>
-				expect( onSaved ).toHaveBeenCalledExactlyOnceWith(
-					expect.objectContaining( { id } )
-				)
-			);
-			expect( writes ).toHaveBeenCalledTimes( 2 );
-			expect( writes ).toHaveBeenLastCalledWith(
-				`/wp/v2/media/${ id }`,
-				expect.objectContaining( { alt_text: 'My unsaved details' } )
-			);
-		}
-	);
-
 	it( 'loads editable original details and discards the cropped attachment edits', async () => {
 		const { registry } = await setup();
 		expect( screen.getByRole( 'textbox', { name: 'Title' } ) ).toHaveValue(

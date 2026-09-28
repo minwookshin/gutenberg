@@ -636,8 +636,6 @@ function MediaEditorContent( {
 			? {
 					id: originalId,
 					url: originalUrl,
-					width: originalWidth,
-					height: originalHeight,
 					media: originalRecord,
 				}
 			: undefined;

@@ -180,8 +180,7 @@ export function useSaveMediaEditor( {
 				saved = ( await saveEditedEntityRecord(
 					'postType',
 					'attachment',
-					targetId,
-					{ throwOnError: true }
+					targetId
 				) ) as Media | undefined;
 			}
 

@@ -73,34 +73,33 @@ export default function MediaEditorCanvas( {
 		onGestureEnd?.();
 	}, [ endGesture, onGestureEnd ] );
 
+	const mediaUrl = media?.source_url;
 	const mediaType = getMediaTypeFromMimeType( media?.mime_type );
-
-	const loadUrl = media?.source_url;
-	const loadWidth = Number( media?.media_details?.width );
-	const loadHeight = Number( media?.media_details?.height );
+	const mediaWidth = Number( media?.media_details?.width );
+	const mediaHeight = Number( media?.media_details?.height );
 
 	useEffect( () => {
 		if (
-			! loadUrl ||
-			! Number.isFinite( loadWidth ) ||
-			! Number.isFinite( loadHeight ) ||
-			loadWidth <= 0 ||
-			loadHeight <= 0
+			! mediaUrl ||
+			! Number.isFinite( mediaWidth ) ||
+			! Number.isFinite( mediaHeight ) ||
+			mediaWidth <= 0 ||
+			mediaHeight <= 0
 		) {
 			return;
 		}
 		// Idempotent: skip when the cropper already holds this source. When the
 		// source changes (initial load, or a restore swapping in the original)
 		// this re-runs and `setImage` refreshes the clean baseline.
-		if ( cropperImage?.src === loadUrl ) {
+		if ( cropperImage?.src === mediaUrl ) {
 			return;
 		}
 		setImage( {
-			src: loadUrl,
-			naturalWidth: loadWidth,
-			naturalHeight: loadHeight,
+			src: mediaUrl,
+			naturalWidth: mediaWidth,
+			naturalHeight: mediaHeight,
 		} );
-	}, [ cropperImage, loadUrl, loadWidth, loadHeight, setImage ] );
+	}, [ cropperImage, mediaUrl, mediaWidth, mediaHeight, setImage ] );
 
 	const isImage = mediaType.type === 'image';
 
@@ -109,14 +108,14 @@ export default function MediaEditorCanvas( {
 	// cropper's own `<img>`, so this adds no network cost. The cropper stays
 	// framework-pure — load/error handling lives here in the wrapper layer.
 	useEffect( () => {
-		if ( ! loadUrl || ! isImage ) {
+		if ( ! mediaUrl || ! isImage ) {
 			return;
 		}
 		setStatus( 'loading' );
 		const probe = new window.Image();
 		probe.onload = () => setStatus( 'loaded' );
 		probe.onerror = () => setStatus( 'error' );
-		probe.src = loadUrl;
+		probe.src = mediaUrl;
 		// Cached images may already be complete before listeners attach.
 		if ( probe.complete ) {
 			setStatus( probe.naturalWidth > 0 ? 'loaded' : 'error' );
@@ -125,9 +124,9 @@ export default function MediaEditorCanvas( {
 			probe.onload = null;
 			probe.onerror = null;
 		};
-	}, [ loadUrl, isImage ] );
+	}, [ mediaUrl, isImage ] );
 
-	if ( ! loadUrl || ! isImage ) {
+	if ( ! mediaUrl || ! isImage ) {
 		return null;
 	}
 
@@ -164,7 +163,7 @@ export default function MediaEditorCanvas( {
 				} ) }
 			>
 				<Cropper
-					src={ loadUrl }
+					src={ mediaUrl }
 					controller={ controller }
 					aspectRatio={ aspectRatio }
 					freeformCrop

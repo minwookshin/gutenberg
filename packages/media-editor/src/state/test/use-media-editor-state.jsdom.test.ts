@@ -288,19 +288,6 @@ describe( 'useMediaEditorState', () => {
 	} );
 
 	describe( 'setImage', () => {
-		it( 'preserves initial geometry and crop options when the first image loads', () => {
-			const { result } = renderHook( () =>
-				useMediaEditorState( {
-					cropper: { rotation: 90 },
-					cropOptions: { aspectRatioValue: '1' },
-				} )
-			);
-			act( () => result.current.setImage( IMAGE ) );
-			expect( result.current.state.rotation ).toBe( 90 );
-			expect( result.current.cropOptions.aspectRatioValue ).toBe( '1' );
-			expect( result.current.isDirty ).toBe( false );
-		} );
-
 		it( 'clears history and resets isDirty', () => {
 			const { result } = setupHook();
 

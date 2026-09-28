@@ -7,10 +7,6 @@
 -   Restore an image's original attachment and editable details from the media editor's More options menu ([#81805](https://github.com/WordPress/gutenberg/pull/81805)).
 -   Allow consumers to restore their own state with snackbar Undo after saving an image edit ([#81805](https://github.com/WordPress/gutenberg/pull/81805)).
 
-### Bug Fixes
-
--   Keep the editor open with an error notice when saving attachment details fails ([#81805](https://github.com/WordPress/gutenberg/pull/81805)).
-
 ## 0.19.0 (2026-09-23)
 
 ### Bug Fixes
