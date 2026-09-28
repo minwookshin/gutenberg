@@ -543,9 +543,7 @@ function CoverEdit( {
 			return;
 		}
 
-		const undoAttributes = {};
-		let originalBackgroundColor;
-		let originalOverlayColor;
+		const previousImage = { id, url: propsRef.current.attributes.url };
 		let isUndone = false;
 		openMediaEditorModal( {
 			id,
@@ -555,40 +553,7 @@ function CoverEdit( {
 			onUndo: () => {
 				isUndone = true;
 				setIsSwappingMedia( false );
-				const {
-					attributes: currentAttrs,
-					overlayColor: currentOverlay,
-				} = propsRef.current;
-				const {
-					overlayColor: previousOverlay,
-					customOverlayColor,
-					isUserOverlayColor: previousIsUserOverlayColor,
-					...imageAttributes
-				} = undoAttributes;
-				const restoreOverlay =
-					! currentAttrs.isUserOverlayColor &&
-					Object.hasOwn( undoAttributes, 'overlayColor' );
-				setAttributes( {
-					...imageAttributes,
-					...( restoreOverlay
-						? {
-								overlayColor: previousOverlay,
-								customOverlayColor,
-								isUserOverlayColor: previousIsUserOverlayColor,
-							}
-						: {} ),
-					...( originalBackgroundColor !== undefined
-						? {
-								isDark: compositeIsDark(
-									currentAttrs.dimRatio,
-									restoreOverlay
-										? originalOverlayColor
-										: currentOverlay.color,
-									originalBackgroundColor
-								),
-							}
-						: {} ),
-				} );
+				setAttributes( previousImage );
 			},
 			onUpdate: async ( { id: newId, url: newUrl } ) => {
 				if ( typeof newId !== 'number' ) {
@@ -607,21 +572,14 @@ function CoverEdit( {
 						? { sizeSlug: DEFAULT_MEDIA_SIZE_SLUG }
 						: {} ),
 				};
-				for ( const key of Object.keys( nextAttributes ) ) {
-					undoAttributes[ key ] = propsRef.current.attributes[ key ];
-				}
 
 				if ( newUrl ) {
-					const [ averageBackgroundColor, previousBackgroundColor ] =
-						await Promise.all( [
-							getMediaColor( newUrl ),
-							getMediaColor( undoAttributes.url ),
-						] );
+					const averageBackgroundColor =
+						await getMediaColor( newUrl );
 					// Snackbar Undo can run while the image color is loading.
 					if ( isUndone ) {
 						return;
 					}
-					originalBackgroundColor = previousBackgroundColor;
 
 					// Read latest values after await to avoid stale closures.
 					const {
@@ -631,12 +589,6 @@ function CoverEdit( {
 
 					let newOverlayColor = currentOverlay.color;
 					if ( ! currentAttrs.isUserOverlayColor ) {
-						originalOverlayColor = currentOverlay.color;
-						undoAttributes.isUserOverlayColor =
-							currentAttrs.isUserOverlayColor;
-						undoAttributes.overlayColor = currentAttrs.overlayColor;
-						undoAttributes.customOverlayColor =
-							currentAttrs.customOverlayColor;
 						newOverlayColor = averageBackgroundColor;
 						setOverlayColor( newOverlayColor );
 						// Fold next attribute change into the same undo level as the setOverlayColor above.

@@ -314,10 +314,9 @@ describe( 'Cover block', () => {
 			};
 		}
 
-		test( 'restores the image size and automatic overlay without reverting unrelated edits', async () => {
+		test( 'restores only the previous image without reverting Cover settings', async () => {
 			const { onUpdate, onUndo, getAttributes, editAttributes } =
 				await openMediaEditor();
-			const previous = getAttributes();
 			await act( () => onUpdate( updatedImage ) );
 			expect( getAttributes() ).toMatchObject( {
 				id: 11,
@@ -325,41 +324,17 @@ describe( 'Cover block', () => {
 				overlayColor: 'white',
 				isDark: false,
 			} );
-			await act( () => editAttributes( { dimRatio: 75 } ) );
-
-			act( () => onUndo() );
-
-			expect( getAttributes() ).toEqual( { ...previous, dimRatio: 75 } );
-		} );
-
-		test( 'preserves a custom overlay when undoing the media update', async () => {
-			const { onUpdate, onUndo, getAttributes, editAttributes } =
-				await openMediaEditor( {
-					overlayColor: undefined,
-					customOverlayColor: '#000000',
-					dimRatio: 20,
-					isDark: false,
-					isUserOverlayColor: true,
-				} );
-			await act( () => onUpdate( updatedImage ) );
 			await act( () =>
-				editAttributes( {
-					customOverlayColor: '#654321',
-					dimRatio: 90,
-					isDark: true,
-				} )
+				editAttributes( { dimRatio: 75, sizeSlug: 'large' } )
 			);
+			const beforeUndo = getAttributes();
 
 			act( () => onUndo() );
 
-			expect( getAttributes() ).toMatchObject( {
+			expect( getAttributes() ).toEqual( {
+				...beforeUndo,
 				id: 10,
 				url: originalUrl,
-				sizeSlug: 'medium',
-				customOverlayColor: '#654321',
-				dimRatio: 90,
-				isDark: true,
-				isUserOverlayColor: true,
 			} );
 		} );
 
@@ -377,17 +352,13 @@ describe( 'Cover block', () => {
 				} )
 			);
 
+			const beforeUndo = getAttributes();
 			act( () => onUndo() );
 
-			expect( getAttributes() ).toMatchObject( {
+			expect( getAttributes() ).toEqual( {
+				...beforeUndo,
 				id: 10,
 				url: originalUrl,
-				sizeSlug: 'medium',
-				overlayColor: undefined,
-				customOverlayColor: '#000000',
-				isUserOverlayColor: true,
-				dimRatio: 90,
-				isDark: true,
 			} );
 		} );
 
