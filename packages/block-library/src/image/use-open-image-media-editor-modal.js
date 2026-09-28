@@ -270,11 +270,6 @@ export function useOpenImageMediaEditorModal( {
 	// Incremented on every handleMediaUpdate call; stale async continuations
 	// check against this to bail out if a newer update has since started.
 	const mediaEditorMetadataSyncRequestRef = useRef( 0 );
-	// The alt text and caption a save overwrote on the block, and the
-	// attachment it moved the block away from. The media editor's Undo moves
-	// the block back but reports only that attachment's id and url, so this is
-	// what lets the update restore the block's own metadata too.
-	const mediaEditorUndoMetadataRef = useRef();
 
 	useEffect( () => {
 		blockAttributesRef.current = {
@@ -352,10 +347,6 @@ export function useOpenImageMediaEditorModal( {
 			// reuse a stale snapshot.
 			const originalAttachment = mediaEditorMetadataBaselineRef.current;
 			mediaEditorMetadataBaselineRef.current = undefined;
-			// Likewise the metadata the last save overwrote: only the update
-			// straight after that save, its Undo, may restore it.
-			const undoMetadata = mediaEditorUndoMetadataRef.current;
-			mediaEditorUndoMetadataRef.current = undefined;
 			const syncRequest = ++mediaEditorMetadataSyncRequestRef.current;
 			const nextAttributes = {};
 
@@ -430,22 +421,6 @@ export function useOpenImageMediaEditorModal( {
 							nextAttributes,
 							resolvedMetadataAttributes
 						);
-
-						// Only a save to a new attachment offers an Undo, so
-						// only then keep the values being overwritten.
-						if ( isNewAttachment ) {
-							mediaEditorUndoMetadataRef.current = {
-								id: currentBlockAttributes.id,
-								attributes: Object.fromEntries(
-									Object.keys(
-										resolvedMetadataAttributes
-									).map( ( key ) => [
-										key,
-										latestBlockAttributes[ key ],
-									] )
-								),
-							};
-						}
 					}
 				}
 
@@ -477,13 +452,6 @@ export function useOpenImageMediaEditorModal( {
 				}
 			}
 
-			// The media editor's Undo: the block is going back to the
-			// attachment the last save moved it away from, so put back the
-			// alt text and caption that save overwrote.
-			if ( undoMetadata?.id === newId ) {
-				Object.assign( nextAttributes, undoMetadata.attributes );
-			}
-
 			if ( Object.keys( nextAttributes ).length ) {
 				// Only restore values this save changed. Block-specific
 				// metadata and unrelated edits must not be overwritten.
@@ -512,11 +480,6 @@ export function useOpenImageMediaEditorModal( {
 		if ( ! id || ! openMediaEditorModal ) {
 			return;
 		}
-
-		// A new session starts. Drop any metadata kept for the last save's
-		// Undo, so a save in this session that returns the block to that same
-		// attachment isn't mistaken for it.
-		mediaEditorUndoMetadataRef.current = undefined;
 
 		// Snapshot the attachment's current metadata before the user makes
 		// any changes so handleMediaUpdate can compare against it later. Use
