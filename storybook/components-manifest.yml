@@ -969,17 +969,7 @@
             - ref
 - name: ProgressBar
   props:
-      - aria-valuetext
       - className
-      - format
-      - getAriaValueText
-      - locale
-      - max
-      - min
-      - render
-      - size
-      - style
-      - tone
       - value
 - name: RadioControl
   props:
