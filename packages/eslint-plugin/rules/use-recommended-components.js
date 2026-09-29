@@ -69,6 +69,7 @@ const ALLOWLIST = {
 			'Menu',
 			'Notice',
 			'Popover',
+			'ProgressBar',
 			'Radio',
 			'RadioGroup',
 			'SearchableSelect',

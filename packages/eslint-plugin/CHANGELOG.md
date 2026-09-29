@@ -8,6 +8,7 @@
 
 ### Enhancements
 
+-   `use-recommended-components`: Recognize the new `@wordpress/ui` ProgressBar as use-with-caution.
 -   Update `use-recommended-components` rule to prefer `Badge` from `@wordpress/ui` over the private `@wordpress/components` `Badge`. ([#82379](https://github.com/WordPress/gutenberg/pull/82379))
 
 ### Bug Fixes
