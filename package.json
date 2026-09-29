@@ -109,6 +109,9 @@
 		"lerna": {
 			"js-yaml": "4.3.2",
 			"pacote": "21.5.1"
+		},
+		"@y/websocket-server": {
+			"yjs": "npm:@y/y@^14.0.0-rc.7"
 		}
 	},
 	"scripts": {
@@ -231,9 +234,8 @@
 		"core-js": false,
 		"core-js-pure": false,
 		"esbuild": false,
-		"fs-ext@2.1.1": true,
+		"fs-ext-extra-prebuilt": false,
 		"fsevents": false,
-		"leveldown@5.6.0": true,
 		"nx": false,
 		"unrs-resolver": false
 	}
