@@ -6,6 +6,10 @@
 
 -   Pass `-T` to `docker compose exec` when stdin is not a terminal, so commands run from a Git hook, which has a TTY on stdout but not on stdin, no longer fail with "cannot attach stdin to a TTY-enabled container" ([#78374](https://github.com/WordPress/gutenberg/pull/78374)).
 
+### Internal
+
+-   Update `@wp-playground/cli` to 3.1.54, which replaces the `fs-ext` optional dependency with a prebuilt fork, so no install-time compilation is needed (#TBD).
+
 ## 11.16.0 (2026-09-23)
 
 ### Bug Fixes
