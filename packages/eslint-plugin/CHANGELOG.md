@@ -8,6 +8,8 @@
 
 ### Enhancements
 
+-   `use-recommended-components`: Recognize the new `@wordpress/ui` Meter as use-with-caution.
+
 -   `use-recommended-components`: Recognize the new `@wordpress/ui` Progress as use-with-caution. ([#83781](https://github.com/WordPress/gutenberg/pull/83781))
 -   Update `use-recommended-components` rule to prefer `Badge` from `@wordpress/ui` over the private `@wordpress/components` `Badge`. ([#82379](https://github.com/WordPress/gutenberg/pull/82379))
 

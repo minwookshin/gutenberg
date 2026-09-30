@@ -67,6 +67,7 @@ const ALLOWLIST = {
 			'IconButton',
 			'LinkButton',
 			'Menu',
+			'Meter',
 			'Notice',
 			'Popover',
 			'Progress',

@@ -1,42 +1,23 @@
 @layer wp-ui {
 	@layer utilities, components, compositions, overrides;
 
-	@layer components {
-		.label,
-		.value {
-			color: var(--wpds-color-foreground-content-neutral);
+	@layer compositions {
+		.label {
+			composes: label from "../utils/css/range-indicator.module.css";
 		}
 
 		.value {
-			font-variant-numeric: tabular-nums;
+			composes: value from "../utils/css/range-indicator.module.css";
 		}
 
 		.track {
-			position: relative;
-			overflow: hidden;
-			width: 100%;
+			composes: track from "../utils/css/range-indicator.module.css";
 			/* Preserve the thin default of the original ProgressBar. */
 			height: 1.5px;
-			border-radius: var(--wpds-border-radius-lg);
-			background-color: var(--wpds-color-background-track-neutral);
-
-			@media (forced-colors: active) {
-				outline: var(--wpds-border-width-xs) solid CanvasText;
-				outline-offset: var(--wpds-border-width-xs);
-			}
 		}
 
 		.indicator {
-			position: absolute;
-			inset-block-start: 0;
-			height: 100%;
-			border-radius: inherit;
-			color: var(--wpds-color-background-thumb-neutral);
-			background-color: currentColor;
-
-			@media not (prefers-reduced-motion) {
-				transition: width var(--wpds-motion-duration-xl) ease-in-out;
-			}
+			composes: indicator from "../utils/css/range-indicator.module.css";
 
 			&[data-indeterminate] {
 				width: 50%;
@@ -52,14 +33,7 @@
 		}
 
 		.is-brand {
-			color: var(--wpds-color-background-thumb-brand);
-		}
-
-		@media (forced-colors: active) {
-			.indicator {
-				forced-color-adjust: none;
-				background-color: CanvasText;
-			}
+			composes: is-brand from "../utils/css/range-indicator.module.css";
 		}
 
 		@keyframes progress-slide {
