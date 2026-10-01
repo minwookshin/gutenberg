@@ -234,6 +234,7 @@
 		"core-js": false,
 		"core-js-pure": false,
 		"esbuild": false,
+		"file:packages/icons": true,
 		"fs-ext-extra-prebuilt": false,
 		"fsevents": false,
 		"nx": false,
